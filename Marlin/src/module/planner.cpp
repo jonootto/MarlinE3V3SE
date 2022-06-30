@@ -1207,6 +1207,13 @@ void Planner::recalculate_trapezoids() {
             const float current_nominal_speed = SQRT(block->nominal_speed_sqr),
                         nomr = 1.0f / current_nominal_speed;
             calculate_trapezoid_for_block(block, current_entry_speed * nomr, next_entry_speed * nomr);
+            #if ENABLED(LIN_ADVANCE)
+              if (block->use_advance_lead) {
+                const float comp = block->e_D_ratio * extruder_advance_K[block->extruder] * settings.axis_steps_per_mm[E_AXIS_N(block->extruder)];
+                block->max_adv_steps = block->nominal_speed * comp;
+                block->final_adv_steps = next_entry_speed * comp;
+              }
+            #endif
           }
 
           // Reset current only to ensure next trapezoid is computed - The
@@ -1238,9 +1245,16 @@ void Planner::recalculate_trapezoids() {
 
       const float nomr = 1.0f / block->nominal_speed;
       calculate_trapezoid_for_block(block, current_entry_speed * nomr, next_entry_speed * nomr);
+      #if ENABLED(LIN_ADVANCE)
+        if (block->use_advance_lead) {
+          const float comp = block->e_D_ratio * extruder_advance_K[block->extruder] * settings.axis_steps_per_mm[E_AXIS_N(block->extruder)];
+          block->max_adv_steps = block->nominal_speed * comp;
+          block->final_adv_steps = next_entry_speed * comp;
+        }
+      #endif
     }
 
-    // Reset next only to ensure its trapezoid is computed - The stepper is free to use
+    // Reset block to ensure its trapezoid is computed - The stepper is free to use
     // the block from now on.
     CBI(next->flag, BLOCK_BIT_RECALCULATE);
   }
@@ -2324,13 +2338,15 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
       /**
        * Use LIN_ADVANCE for blocks if all these are true:
        *
-       * esteps             : This is a print move, because we checked for A, B, C steps before.
+       * esteps                       : This is a print move, because we checked for A, B, C steps before.
        *
-       * extruder_advance_K[active_extruder] : There is an advance factor set for this extruder.
+       * extruder_advance_K[extruder] : There is an advance factor set for this extruder.
        *
-       * de > 0             : Extruder is running forward (e.g., for "Wipe while retracting" (Slic3r) or "Combing" (Cura) moves)
+       * de > 0                       : Extruder is running forward (e.g., for "Wipe while retracting" (Slic3r) or "Combing" (Cura) moves)
        */
-      use_advance_lead = esteps && extruder_advance_K[extruder] && de > 0;
+      block->use_advance_lead =  esteps
+                              && extruder_advance_K[extruder]
+                              && de > 0;
 
       if (use_advance_lead) {
         float e_D_ratio = (target_float.e - position_float.e) /
@@ -2348,7 +2364,7 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
         if (e_D_ratio > 3.0f)
           use_advance_lead = false;
         else {
-          const uint32_t max_accel_steps_per_s2 = MAX_E_JERK(extruder) / (extruder_advance_K[extruder] * e_D_ratio) * steps_per_mm;
+          const uint32_t max_accel_steps_per_s2 = MAX_E_JERK(extruder) / (extruder_advance_K[extruder] * block->e_D_ratio) * steps_per_mm;
           if (TERN0(LA_DEBUG, accel > max_accel_steps_per_s2))
             SERIAL_ECHOLNPGM("Acceleration limited.");
           NOMORE(accel, max_accel_steps_per_s2);
@@ -2376,11 +2392,10 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
     block->acceleration_rate = (uint32_t)(accel * (sq(4096.0f) / (STEPPER_TIMER_RATE)));
   #endif
   #if ENABLED(LIN_ADVANCE)
-    if (use_advance_lead) {
-      // the Bresenham algorithm will convert this step rate into extruder steps
-      block->la_advance_rate = extruder_advance_K[extruder] * block->acceleration_steps_per_s2;
+    if (block->use_advance_lead) {
+      block->advance_speed = (STEPPER_TIMER_RATE) / (extruder_advance_K[extruder] * block->e_D_ratio * block->acceleration * settings.axis_steps_per_mm[E_AXIS_N(extruder)]);
       #if ENABLED(LA_DEBUG)
-        if (extruder_advance_K[extruder] * block->acceleration * 2 < block->nominal_speed)
+        if (extruder_advance_K[extruder] * block->e_D_ratio * block->acceleration * 2 < block->nominal_speed * block->e_D_ratio)
           SERIAL_ECHOLNPGM("More than 2 steps per eISR loop executed.");
         if (block->advance_speed < 200)
           SERIAL_ECHOLNPGM("eISR running at > 10kHz.");
