@@ -2380,8 +2380,10 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
       // the Bresenham algorithm will convert this step rate into extruder steps
       block->la_advance_rate = extruder_advance_K[extruder] * block->acceleration_steps_per_s2;
       #if ENABLED(LA_DEBUG)
-        if (block->la_advance_rate > 10000)
-          SERIAL_ECHOLNPGM("eISR running at > 10kHz: ", block->la_advance_rate);
+        if (extruder_advance_K[extruder] * block->acceleration * 2 < block->nominal_speed)
+          SERIAL_ECHOLNPGM("More than 2 steps per eISR loop executed.");
+        if (block->advance_speed < 200)
+          SERIAL_ECHOLNPGM("eISR running at > 10kHz.");
       #endif
     }
     else
