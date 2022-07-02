@@ -2080,13 +2080,13 @@ uint32_t Stepper::block_phase_isr() {
         deceleration_time += interval;
 
         #if ENABLED(LIN_ADVANCE)
-          if (current_block->la_advance_rate && current_block->la_advance_rate != step_rate) {
+          if (la_advance_rate && la_advance_rate != step_rate) {
             uint32_t la_step_rate;
-            if (current_block->la_advance_rate < step_rate) {
-              la_step_rate = step_rate - current_block->la_advance_rate;
+            if (la_advance_rate < step_rate) {
+              la_step_rate = step_rate - la_advance_rate;
             }
             else {
-              la_step_rate = current_block->la_advance_rate - step_rate;
+              la_step_rate = la_advance_rate - step_rate;
 
               if (reverse_e != motor_direction(E_AXIS)) {
                 TBI(last_direction_bits, E_AXIS);
@@ -2450,9 +2450,9 @@ uint32_t Stepper::block_phase_isr() {
       interval = calc_timer_interval(current_block->initial_rate << oversampling_factor, &steps_per_isr);
 
       #if ENABLED(LIN_ADVANCE)
-        if (current_block->la_advance_rate) {
-          const uint32_t la_step_rate = current_block->initial_rate + current_block->la_advance_rate;
-          la_interval = calc_timer_interval(la_step_rate) << current_block->la_scaling;
+        if (la_advance_rate) {
+          const uint32_t la_step_rate = current_block->initial_rate + la_advance_rate;
+          la_interval = calc_timer_interval(la_step_rate) << la_scaling;
         }
       #endif
     }
