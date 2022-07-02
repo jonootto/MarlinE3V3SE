@@ -213,10 +213,9 @@ uint32_t Stepper::advance_divisor = 0,
 #endif
 
 #if ENABLED(LIN_ADVANCE)
-
   uint32_t Stepper::nextAdvanceISR = LA_ADV_NEVER,
+           Stepper::la_advance_rate = 0,
            Stepper::la_interval = LA_ADV_NEVER;
-  uint8_t  Stepper::la_scaling = 0;
 #endif
 
 #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -479,48 +478,25 @@ void Stepper::set_directions() {
     SET_STEP_DIR(Z); // C
   #endif
 
-  #if DISABLED(LIN_ADVANCE)
-    #if ENABLED(MIXING_EXTRUDER)
-       // Because this is valid for the whole block we don't know
-       // what e-steppers will step. Likely all. Set all.
-      if (motor_direction(E_AXIS)) {
-        MIXER_STEPPER_LOOP(j) REV_E_DIR(j);
-        count_direction.e = -1;
-      }
-      else {
-        MIXER_STEPPER_LOOP(j) NORM_E_DIR(j);
-        count_direction.e = 1;
-      }
-    #else
-      if (motor_direction(E_AXIS)) {
-        REV_E_DIR(stepper_extruder);
-        count_direction.e = -1;
-      }
-      else {
-        NORM_E_DIR(stepper_extruder);
-        count_direction.e = 1;
-      }
-    #endif
-  #endif // !LIN_ADVANCE
-
-  #if HAS_L64XX
-    if (L64XX_OK_to_power_up) { // OK to send the direction commands (which powers up the L64XX steppers)
-      if (L64xxManager.spi_active) {
-        L64xxManager.spi_abort = true;                    // Interrupted SPI transfer needs to shut down gracefully
-        for (uint8_t j = 1; j <= L64XX::chain[0]; j++)
-          L6470_buf[j] = dSPIN_NOP;                         // Fill buffer with NOOPs
-        L64xxManager.transfer(L6470_buf, L64XX::chain[0]);  // Send enough NOOPs to complete any command
-        L64xxManager.transfer(L6470_buf, L64XX::chain[0]);
-        L64xxManager.transfer(L6470_buf, L64XX::chain[0]);
-      }
-
-      // L64xxManager.dir_commands[] is an array that holds direction command for each stepper
-
-      // Scan command array, copy matches into L64xxManager.transfer
-      for (uint8_t j = 1; j <= L64XX::chain[0]; j++)
-        L6470_buf[j] = L64xxManager.dir_commands[L64XX::chain[j]];
-
-      L64xxManager.transfer(L6470_buf, L64XX::chain[0]);  // send the command stream to the drivers
+  #if ENABLED(MIXING_EXTRUDER)
+     // Because this is valid for the whole block we don't know
+     // what E steppers will step. Likely all. Set all.
+    if (motor_direction(E_AXIS)) {
+      MIXER_STEPPER_LOOP(j) REV_E_DIR(j);
+      count_direction.e = -1;
+    }
+    else {
+      MIXER_STEPPER_LOOP(j) NORM_E_DIR(j);
+      count_direction.e = 1;
+    }
+  #elif HAS_EXTRUDERS
+    if (motor_direction(E_AXIS)) {
+      REV_E_DIR(stepper_extruder);
+      count_direction.e = -1;
+    }
+    else {
+      NORM_E_DIR(stepper_extruder);
+      count_direction.e = 1;
     }
   #endif
 
@@ -1384,7 +1360,12 @@ void Stepper::isr() {
     TERN_(HAS_SHAPING, shaping_isr());
 
     #if ENABLED(LIN_ADVANCE)
-      if (!nextAdvanceISR) nextAdvanceISR = advance_isr();          // 0 = Do Linear Advance E Stepper pulses
+      if (!nextAdvanceISR) {                                        // 0 = Do Linear Advance E Stepper pulses
+        advance_isr();
+        nextAdvanceISR = la_interval;
+      }
+      else if (nextAdvanceISR == LA_ADV_NEVER)                      // Start LA steps if neccessary
+        nextAdvanceISR = la_interval;
     #endif
 
     #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -1788,7 +1769,7 @@ void Stepper::pulse_phase_isr() {
         PULSE_PREP(W);
       #endif
 
-      if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
+      if (TERN1(LIN_ADVANCE, !la_advance_rate)) {
         #if ENABLED(MIXING_EXTRUDER)
           delta_error.e += advance_dividend.e;
           if (delta_error.e >= 0) {
@@ -1837,7 +1818,7 @@ void Stepper::pulse_phase_isr() {
       PULSE_START(W);
     #endif
 
-    if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
+    if (TERN1(LIN_ADVANCE, !la_advance_rate)) {
       #if ENABLED(MIXING_EXTRUDER)
         if (step_needed.e) E_STEP_WRITE(mixer.get_next_stepper(), !INVERT_E_STEP_PIN);
       #elif HAS_E0_STEP
@@ -1845,9 +1826,7 @@ void Stepper::pulse_phase_isr() {
       #endif
     }
 
-    #if ENABLED(I2S_STEPPER_STREAM)
-      i2s_push_sample();
-    #endif
+    TERN_(I2S_STEPPER_STREAM, i2s_push_sample());
 
     // TODO: need to deal with MINIMUM_STEPPER_PULSE over i2s
     #if ISR_MULTI_STEPS
@@ -1884,7 +1863,7 @@ void Stepper::pulse_phase_isr() {
       PULSE_STOP(W);
     #endif
 
-    if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
+    if (TERN1(LIN_ADVANCE, !la_advance_rate)) {
       #if ENABLED(MIXING_EXTRUDER)
         if (step_needed.e) E_STEP_WRITE(mixer.get_stepper(), INVERT_E_STEP_PIN);
       #elif HAS_E0_STEP
@@ -1960,6 +1939,8 @@ uint32_t Stepper::block_phase_isr() {
   // If no queued movements, just wait 1ms for the next block
   uint32_t interval = (STEPPER_TIMER_RATE) / 1000UL;
 
+  TERN_(LIN_ADVANCE, la_interval = LA_ADV_NEVER);
+
   // If there is a current block
   if (current_block) {
 
@@ -2009,9 +1990,8 @@ uint32_t Stepper::block_phase_isr() {
         #if ENABLED(LIN_ADVANCE)
           if (la_advance_rate) {
             const uint32_t la_step_rate = acc_step_rate + la_advance_rate;
-            la_interval = calc_timer_interval(la_step_rate) << la_scaling;
+            la_interval = calc_timer_interval(la_step_rate);
           }
-          else if (LA_steps) nextAdvanceISR = 0;
         #endif
 
         // Update laser - Accelerating
@@ -2081,38 +2061,30 @@ uint32_t Stepper::block_phase_isr() {
         deceleration_time += interval;
 
         #if ENABLED(LIN_ADVANCE)
-          if (la_advance_rate && la_advance_rate != step_rate) {
+          if (la_advance_rate && la_advance_rate != acc_step_rate) {
             uint32_t la_step_rate;
-            if (la_advance_rate < step_rate) {
-              la_step_rate = step_rate - la_advance_rate;
+            if (la_advance_rate < acc_step_rate) {
+              la_step_rate = acc_step_rate - la_advance_rate;
             }
             else {
-              la_step_rate = la_advance_rate - step_rate;
+              la_step_rate = la_advance_rate - acc_step_rate;
 
-              if (reverse_e != motor_direction(E_AXIS)) {
-                TBI(last_direction_bits, E_AXIS);
-                count_direction.e = -count_direction.e;
+              if (!motor_direction(E_AXIS)) {
+                SBI(last_direction_bits, E_AXIS);
+                count_direction.e = -1;
 
                 DIR_WAIT_BEFORE();
 
-                if (reverse_e) {
-                  #if ENABLED(MIXING_EXTRUDER)
-                    MIXER_STEPPER_LOOP(j) REV_E_DIR(j);
-                  #else
-                    REV_E_DIR(stepper_extruder);
-                  #endif
-                } else {
-                  #if ENABLED(MIXING_EXTRUDER)
-                    MIXER_STEPPER_LOOP(j) NORM_E_DIR(j);
-                  #else
-                    NORM_E_DIR(stepper_extruder);
-                  #endif
-                }
+                #if ENABLED(MIXING_EXTRUDER)
+                  MIXER_STEPPER_LOOP(j) REV_E_DIR(j);
+                #else
+                  REV_E_DIR(stepper_extruder);
+                #endif
 
                 DIR_WAIT_AFTER();
               }
             }
-            la_interval = calc_timer_interval(la_step_rate) << la_scaling;
+            la_interval = calc_timer_interval(la_step_rate);
           }
         #endif // LIN_ADVANCE
 
@@ -2133,13 +2105,7 @@ uint32_t Stepper::block_phase_isr() {
           }
         #endif
       }
-      // Must be in cruise phase otherwise
-      else {
-
-        #if ENABLED(LIN_ADVANCE)
-          // If there are any esteps, fire the next advance_isr "now"
-          if (LA_steps && LA_isr_rate != current_block->advance_speed) initiateLA();
-        #endif
+      else {  // Must be in cruise phase otherwise
 
         // Calculate the ticks_nominal for this nominal speed, if not done yet
         if (ticks_nominal < 0) {
@@ -2151,7 +2117,7 @@ uint32_t Stepper::block_phase_isr() {
         interval = ticks_nominal;
 
         #if ENABLED(LIN_ADVANCE)
-          if (la_advance_rate) la_interval = interval << la_scaling;
+          if (la_advance_rate) la_interval = interval;
         #endif
       }
 
@@ -2368,12 +2334,9 @@ uint32_t Stepper::block_phase_isr() {
       // Initialize the trapezoid generator from the current block.
       #if ENABLED(LIN_ADVANCE)
         la_advance_rate = current_block->la_advance_rate;
-        la_scaling = current_block->la_scaling;
-        advance_dividend.e <<= la_scaling;
       #endif
 
-      if ( ENABLED(HAS_L64XX)       // Always set direction for L64xx (Also enables the chips)
-        || ENABLED(DUAL_X_CARRIAGE) // TODO: Find out why this fixes "jittery" small circles
+      if ( ENABLED(DUAL_X_CARRIAGE) // TODO: Find out why this fixes "jittery" small circles
         || current_block->direction_bits != last_direction_bits
         || TERN(MIXING_EXTRUDER, false, stepper_extruder != last_moved_extruder)
       ) {
@@ -2443,12 +2406,12 @@ uint32_t Stepper::block_phase_isr() {
       #endif
 
       // Calculate the initial timer interval
-      interval = calc_timer_interval(current_block->initial_rate << oversampling_factor, &steps_per_isr);
+      interval = calc_timer_interval(current_block->initial_rate, &steps_per_isr);
 
       #if ENABLED(LIN_ADVANCE)
         if (la_advance_rate) {
           const uint32_t la_step_rate = acc_step_rate + la_advance_rate;
-          la_interval = calc_timer_interval(la_step_rate) << la_scaling;
+          la_interval = calc_timer_interval(la_step_rate);
         }
       #endif
     }
@@ -2465,11 +2428,10 @@ uint32_t Stepper::block_phase_isr() {
     // Apply Bresenham algorithm so that linear advance can piggy back on
     // the acceleration and speed values calculated in block_phase_isr().
     // This helps keep LA in sync with, for example, S_CURVE_ACCELERATION.
-    la_delta_error += advance_dividend.e;
-    if (la_delta_error >= 0) {
+    delta_error.e += advance_dividend.e;
+    if (delta_error.e >= 0) {
       count_position.e += count_direction.e;
-      la_advance_steps += count_direction.e;
-      la_delta_error -= advance_divisor;
+      delta_error.e -= advance_divisor;
 
       // Set the STEP pulse ON
       #if ENABLED(MIXING_EXTRUDER)
@@ -2480,12 +2442,8 @@ uint32_t Stepper::block_phase_isr() {
 
       // Enforce a minimum duration for STEP pulse ON
       #if ISR_PULSE_CONTROL
+        USING_TIMED_PULSE();
         START_HIGH_PULSE();
-      #endif
-
-      LA_steps < 0 ? ++LA_steps : --LA_steps;
-
-      #if ISR_PULSE_CONTROL
         AWAIT_HIGH_PULSE();
       #endif
 
@@ -2495,15 +2453,7 @@ uint32_t Stepper::block_phase_isr() {
       #else
         E_STEP_WRITE(stepper_extruder, INVERT_E_STEP_PIN);
       #endif
-
-      // For minimum pulse time wait before looping
-      // Just wait for the requested pulse duration
-      #if ISR_PULSE_CONTROL
-        if (LA_steps) START_LOW_PULSE();
-      #endif
-    } // LA_steps
-
-    return interval;
+    }
   }
 
 #endif // LIN_ADVANCE

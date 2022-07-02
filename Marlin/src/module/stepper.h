@@ -486,8 +486,8 @@ class Stepper {
     #if ENABLED(LIN_ADVANCE)
       static constexpr uint32_t LA_ADV_NEVER = 0xFFFFFFFF;
       static uint32_t nextAdvanceISR,
+                      la_advance_rate,  // Rate in steps/s calculated from current_block->acceleration_rate
                       la_interval;      // Interval between ISR calls for LA
-      static uint8_t  la_scaling;       // Scale ISR frequency down and step frequency up by 2 ^ la_scaling
     #endif
 
 friend class GcodeSuite;
@@ -567,8 +567,7 @@ friend class GcodeSuite;
 
     #if ENABLED(LIN_ADVANCE)
       // The Linear advance ISR phase
-      static uint32_t advance_isr();
-      FORCE_INLINE static void initiateLA() { nextAdvanceISR = 0; }
+      static void advance_isr();
     #endif
 
     #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -708,41 +707,10 @@ friend class GcodeSuite;
   private:
 
     // Set the current position in steps
-    static void _set_position(const int32_t &a, const int32_t &b, const int32_t &c, const int32_t &e);
-    FORCE_INLINE static void _set_position(const abce_long_t &spos) { _set_position(spos.a, spos.b, spos.c, spos.e); }
+    static void _set_position(const abce_long_t &spos);
 
-    static uint32_t calc_timer_interval(uint32_t step_rate) {
+    FORCE_INLINE static uint32_t calc_timer_interval(uint32_t step_rate) {
       uint32_t timer;
-
-      // Scale the frequency, as requested by the caller
-      step_rate <<= oversampling_factor;
-
-      uint8_t multistep = 1;
-      #if DISABLED(DISABLE_MULTI_STEPPING)
-
-        // The stepping frequency limits for each multistepping rate
-        static const uint32_t limit[] PROGMEM = {
-          (  MAX_STEP_ISR_FREQUENCY_1X     ),
-          (  MAX_STEP_ISR_FREQUENCY_2X >> 1),
-          (  MAX_STEP_ISR_FREQUENCY_4X >> 2),
-          (  MAX_STEP_ISR_FREQUENCY_8X >> 3),
-          ( MAX_STEP_ISR_FREQUENCY_16X >> 4),
-          ( MAX_STEP_ISR_FREQUENCY_32X >> 5),
-          ( MAX_STEP_ISR_FREQUENCY_64X >> 6),
-          (MAX_STEP_ISR_FREQUENCY_128X >> 7)
-        };
-
-        // Select the proper multistepping
-        uint8_t idx = 0;
-        while (idx < 7 && step_rate > (uint32_t)pgm_read_dword(&limit[idx])) {
-          step_rate >>= 1;
-          multistep <<= 1;
-          ++idx;
-        };
-      #else
-        NOMORE(step_rate, uint32_t(MAX_STEP_ISR_FREQUENCY_1X));
-      #endif
-      *loops = multistep;
 
       #ifdef CPU_32_BIT
         // In case of high-performance processor, it is able to calculate in real-time
@@ -772,6 +740,9 @@ friend class GcodeSuite;
     }
 
     FORCE_INLINE static uint32_t calc_timer_interval(uint32_t step_rate, uint8_t *loops) {
+      // Scale the frequency, as requested by the caller
+      step_rate <<= oversampling_factor;
+
       uint8_t multistep = 1;
       #if DISABLED(DISABLE_MULTI_STEPPING)
 
