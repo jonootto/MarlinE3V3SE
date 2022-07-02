@@ -2361,7 +2361,8 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
         if (block->e_D_ratio > 3.0f)
           block->use_advance_lead = false;
         else {
-          const uint32_t max_accel_steps_per_s2 = MAX_E_JERK(extruder) / (extruder_advance_K[active_extruder] * block->e_D_ratio) * steps_per_mm;
+          // Scale E acceleration so that it will be possible to jump to the advance speed.
+          const uint32_t max_accel_steps_per_s2 = MAX_E_JERK(extruder) / (extruder_advance_K[extruder] * e_D_ratio) * steps_per_mm;
           if (TERN0(LA_DEBUG, accel > max_accel_steps_per_s2))
             SERIAL_ECHOLNPGM("Acceleration limited.");
           NOMORE(accel, max_accel_steps_per_s2);
@@ -2396,16 +2397,16 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
       // the Bresenham algorithm will convert this step rate into extruder steps
       block->la_advance_rate = extruder_advance_K[extruder] * block->acceleration_steps_per_s2;
 
-      // reduce LA ISR frequency by calling it only often enough to ensure that there will
-      // never be more than four extruder steps per call
-      for (uint32_t dividend = block->steps.e << 1; dividend <= (block->step_event_count >> 2); dividend <<= 1)
+      // Minimise LA ISR frequency by calling it only often enough to ensure that there will
+      // never be more than one extruder step per call. Since we use the Bresenham algorithm
+      // this means E steps * 2 ^ la_scaling is at least half of step_event_count and no more
+      // step_event_count.
+      for (uint32_t dividend = block->steps.e << 1; dividend <= block->step_event_count; dividend <<= 1)
         block->la_scaling++;
 
       #if ENABLED(LA_DEBUG)
-        if (extruder_advance_K[active_extruder] * block->e_D_ratio * block->acceleration * 2 < SQRT(block->nominal_speed_sqr) * block->e_D_ratio)
-          SERIAL_ECHOLNPGM("More than 2 steps per eISR loop executed.");
-        if (block->advance_speed < 200)
-          SERIAL_ECHOLNPGM("eISR running at > 10kHz.");
+        if (block->la_advance_rate >> block->la_scaling > 10000)
+          SERIAL_ECHOLNPGM("eISR running at > 10kHz: ", block->la_advance_rate);
       #endif
     }
   #endif

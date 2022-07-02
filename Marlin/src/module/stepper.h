@@ -487,7 +487,10 @@ class Stepper {
       static constexpr uint32_t LA_ADV_NEVER = 0xFFFFFFFF;
       static uint32_t nextAdvanceISR,
                       la_interval;      // Interval between ISR calls for LA
+      static uint8_t  la_scaling;       // Scale ISR frequency down and step frequency up by 2 ^ la_scaling
     #endif
+
+friend class GcodeSuite;
 
     #if ENABLED(INTEGRATED_BABYSTEPPING)
       static constexpr uint32_t BABYSTEP_NEVER = 0xFFFFFFFF;
