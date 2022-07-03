@@ -2002,7 +2002,7 @@ uint32_t Stepper::block_phase_isr() {
         // acc_step_rate is in steps/second
 
         // step_rate to timer interval and steps per stepper isr
-        interval = calc_timer_interval(acc_step_rate, &steps_per_isr);
+        interval = calc_timer_interval(acc_step_rate << oversampling_factor, &steps_per_isr);
         acceleration_time += interval;
 
         #if ENABLED(LIN_ADVANCE)
@@ -2076,7 +2076,7 @@ uint32_t Stepper::block_phase_isr() {
         // step_rate is in steps/second
 
         // step_rate to timer interval and steps per stepper isr
-        interval = calc_timer_interval(step_rate, &steps_per_isr);
+        interval = calc_timer_interval(step_rate << oversampling_factor, &steps_per_isr);
         deceleration_time += interval;
 
         #if ENABLED(LIN_ADVANCE)
@@ -2143,7 +2143,7 @@ uint32_t Stepper::block_phase_isr() {
         // Calculate the ticks_nominal for this nominal speed, if not done yet
         if (ticks_nominal < 0) {
           // step_rate to timer interval and loops for the nominal speed
-          ticks_nominal = calc_timer_interval(current_block->nominal_rate, &steps_per_isr);
+          ticks_nominal = calc_timer_interval(current_block->nominal_rate << oversampling_factor, &steps_per_isr);
         }
 
         // The timer interval is just the nominal value for the nominal speed
@@ -2151,8 +2151,7 @@ uint32_t Stepper::block_phase_isr() {
 
         #if ENABLED(LIN_ADVANCE)
           // No more acceleration, so re-use ticks_nominal but discount the effect of oversampling_factor
-          if (current_block->la_advance_rate)
-            la_interval = (ticks_nominal << current_block->la_scaling) << oversampling_factor;
+          if (la_advance_rate) la_interval = (ticks_nominal << la_scaling) << oversampling_factor;
         #endif
       }
 
@@ -2368,12 +2367,13 @@ uint32_t Stepper::block_phase_isr() {
 
       // Initialize the trapezoid generator from the current block.
       #if ENABLED(LIN_ADVANCE)
-        if (current_block->la_advance_rate) {
-          advance_dividend.e <<= current_block->la_scaling;
+        la_advance_rate = current_block->la_advance_rate;
+        if (la_advance_rate) {
+          la_scaling = current_block->la_scaling;
+          advance_dividend.e <<= la_scaling;
           // discount the effect of frequency scaling for the stepper
           advance_dividend.e <<= oversampling;
         }
-        else LA_isr_rate = LA_ADV_NEVER;
       #endif
 
       if ( ENABLED(HAS_L64XX)       // Always set direction for L64xx (Also enables the chips)
@@ -2448,7 +2448,6 @@ uint32_t Stepper::block_phase_isr() {
 
       // Calculate the initial timer interval
       interval = calc_timer_interval(current_block->initial_rate << oversampling_factor, &steps_per_isr);
-      acceleration_time += interval;
 
       #if ENABLED(LIN_ADVANCE)
         if (current_block->la_advance_rate) {

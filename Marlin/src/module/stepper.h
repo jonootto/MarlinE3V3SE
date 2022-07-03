@@ -768,7 +768,7 @@ class Stepper {
       return timer;
     }
 
-    static uint32_t calc_timer_interval(uint32_t step_rate, uint8_t *loops) {
+    FORCE_INLINE static uint32_t calc_timer_interval(uint32_t step_rate, uint8_t *loops) {
       uint8_t multistep = 1;
       #if DISABLED(DISABLE_MULTI_STEPPING)
 
