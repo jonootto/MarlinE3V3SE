@@ -430,6 +430,16 @@
   #error "SPINDLE_LASER_ACTIVE_HIGH is now SPINDLE_LASER_ACTIVE_STATE."
 #elif defined(SPINDLE_LASER_ENABLE_INVERT)
   #error "SPINDLE_LASER_ENABLE_INVERT is now SPINDLE_LASER_ACTIVE_STATE."
+#elif defined(LASER_POWER_INLINE)
+  #error "LASER_POWER_INLINE is not required, inline mode is enabled with 'M3 I' and disabled with 'M5 I'."
+#elif defined(LASER_POWER_INLINE_TRAPEZOID)
+  #error "LASER_POWER_INLINE_TRAPEZOID is now LASER_POWER_TRAP."
+#elif defined(LASER_POWER_INLINE_TRAPEZOID_CONT)
+  #error "LASER_POWER_INLINE_TRAPEZOID_CONT is replaced with LASER_POWER_TRAP."
+#elif defined(LASER_POWER_INLINE_TRAPEZOID_PER)
+  #error "LASER_POWER_INLINE_TRAPEZOID_CONT_PER  replaced with LASER_POWER_TRAP."
+#elif defined(LASER_POWER_INLINE_CONTINUOUS)
+  #error "LASER_POWER_INLINE_CONTINUOUS is not required, inline mode is enabled with 'M3 I' and disabled with 'M5 I'."
 #elif defined(CUTTER_POWER_DISPLAY)
   #error "CUTTER_POWER_DISPLAY is now CUTTER_POWER_UNIT."
 #elif defined(CHAMBER_HEATER_PIN)
@@ -564,6 +574,58 @@
   #error "MKS_LCD12864 is now MKS_LCD12864A or MKS_LCD12864B."
 #elif defined(NEOPIXEL_BKGD_LED_INDEX)
   #error "NEOPIXEL_BKGD_LED_INDEX is now NEOPIXEL_BKGD_INDEX_FIRST."
+#elif defined(TEMP_SENSOR_1_AS_REDUNDANT)
+  #error "TEMP_SENSOR_1_AS_REDUNDANT is now TEMP_SENSOR_REDUNDANT, with associated TEMP_SENSOR_REDUNDANT_* config."
+#elif defined(MAX_REDUNDANT_TEMP_SENSOR_DIFF)
+  #error "MAX_REDUNDANT_TEMP_SENSOR_DIFF is now TEMP_SENSOR_REDUNDANT_MAX_DIFF"
+#elif defined(LCD_ALEPHOBJECTS_CLCD_UI)
+  #error "LCD_ALEPHOBJECTS_CLCD_UI is now LCD_LULZBOT_CLCD_UI."
+#elif defined(MIN_ARC_SEGMENTS)
+  #error "MIN_ARC_SEGMENTS is now MIN_CIRCLE_SEGMENTS."
+#elif defined(ARC_SEGMENTS_PER_R)
+  #error "ARC_SUPPORT no longer uses ARC_SEGMENTS_PER_R."
+#elif ENABLED(ARC_SUPPORT) && (!defined(MIN_ARC_SEGMENT_MM) || !defined(MAX_ARC_SEGMENT_MM))
+  #error "ARC_SUPPORT now requires MIN_ARC_SEGMENT_MM and MAX_ARC_SEGMENT_MM."
+#elif defined(LASER_POWER_INLINE)
+  #error "LASER_POWER_INLINE is obsolete."
+#elif defined(SPINDLE_LASER_PWM)
+  #error "SPINDLE_LASER_PWM (true) is now set with SPINDLE_LASER_USE_PWM (enabled)."
+#elif ANY(IS_RAMPS_EEB, IS_RAMPS_EEF, IS_RAMPS_EFB, IS_RAMPS_EFF, IS_RAMPS_SF)
+  #error "The IS_RAMPS_* conditionals (for heater/fan/bed pins) are now called FET_ORDER_*."
+#elif defined(PROBE_TEMP_COMPENSATION)
+  #error "PROBE_TEMP_COMPENSATION is now set using the PTC_PROBE, PTC_BED, PTC_HOTEND options."
+#elif defined(BTC_PROBE_TEMP)
+  #error "BTC_PROBE_TEMP is now PTC_PROBE_TEMP."
+#elif defined(LCD_SCREEN_ROT_90)
+  #error "LCD_SCREEN_ROT_90 is now LCD_SCREEN_ROTATE with a value of 90."
+#elif defined(LCD_SCREEN_ROT_180)
+  #error "LCD_SCREEN_ROT_180 is now LCD_SCREEN_ROTATE with a value of 180."
+#elif defined(LCD_SCREEN_ROT_270)
+  #error "LCD_SCREEN_ROT_270 is now LCD_SCREEN_ROTATE with a value of 270."
+#elif defined(DEFAULT_LCD_BRIGHTNESS)
+  #error "DEFAULT_LCD_BRIGHTNESS is now LCD_BRIGHTNESS_DEFAULT."
+#elif defined(NOZZLE_PARK_X_ONLY)
+  #error "NOZZLE_PARK_X_ONLY is now NOZZLE_PARK_MOVE 1."
+#elif defined(NOZZLE_PARK_Y_ONLY)
+  #error "NOZZLE_PARK_Y_ONLY is now NOZZLE_PARK_MOVE 2."
+#elif defined(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+  #error "Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS is now just Z_STEPPER_ALIGN_STEPPER_XY."
+#elif defined(DWIN_CREALITY_LCD_ENHANCED)
+  #error "DWIN_CREALITY_LCD_ENHANCED is now DWIN_LCD_PROUI."
+#elif defined(LINEAR_AXES)
+  #error "LINEAR_AXES is now NUM_AXES (to account for rotational axes)."
+#elif defined(X_DUAL_STEPPER_DRIVERS)
+  #error "X_DUAL_STEPPER_DRIVERS is no longer needed and should be removed."
+#elif defined(Y_DUAL_STEPPER_DRIVERS)
+  #error "Y_DUAL_STEPPER_DRIVERS is no longer needed and should be removed."
+#elif defined(NUM_Z_STEPPER_DRIVERS)
+  #error "NUM_Z_STEPPER_DRIVERS is no longer needed and should be removed."
+#elif defined(LEVEL_BED_CORNERS)
+  #error "LEVEL_BED_CORNERS is now LCD_BED_TRAMMING."
+#elif defined(LEVEL_CORNERS_INSET_LFRB) || defined(LEVEL_CORNERS_HEIGHT) || defined(LEVEL_CORNERS_Z_HOP) || defined(LEVEL_CORNERS_USE_PROBE) || defined(LEVEL_CORNERS_PROBE_TOLERANCE) || defined(LEVEL_CORNERS_VERIFY_RAISED) || defined(LEVEL_CORNERS_AUDIO_FEEDBACK)
+  #error "LEVEL_CORNERS_* settings have been renamed BED_TRAMMING_*."
+#elif defined(LEVEL_CENTER_TOO)
+  #error "LEVEL_CENTER_TOO is now BED_TRAMMING_INCLUDE_CENTER."
 #endif
 
 /**
@@ -3064,37 +3126,26 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
     #error "CUTTER_POWER_UNIT must be PWM255, PERCENT, RPM, or SERVO."
   #endif
 
-  #if ENABLED(LASER_POWER_INLINE)
+  #if ENABLED(LASER_FEATURE)
     #if ENABLED(SPINDLE_CHANGE_DIR)
-      #error "SPINDLE_CHANGE_DIR and LASER_POWER_INLINE are incompatible."
-    #elif ENABLED(LASER_MOVE_G0_OFF) && DISABLED(LASER_MOVE_POWER)
-      #error "LASER_MOVE_G0_OFF requires LASER_MOVE_POWER."
+      #error "SPINDLE_CHANGE_DIR and LASER_FEATURE are incompatible."
+    #elif ENABLED(LASER_MOVE_G0_OFF)
+      #error "LASER_MOVE_G0_OFF is no longer required, G0 and G28 cannot apply power."
+    #elif ENABLED(LASER_MOVE_G28_OFF)
+      #error "LASER_MOVE_G0_OFF is no longer required, G0 and G28 cannot apply power."
+    #elif ENABLED(LASER_MOVE_POWER)
+      #error "LASER_MOVE_POWER is no longer applicable."
     #endif
-    #if ENABLED(LASER_POWER_INLINE_TRAPEZOID)
-      #if DISABLED(SPINDLE_LASER_PWM)
-        #error "LASER_POWER_INLINE_TRAPEZOID requires SPINDLE_LASER_PWM to function."
-      #elif ENABLED(S_CURVE_ACCELERATION)
-        //#ifndef LASER_POWER_INLINE_S_CURVE_ACCELERATION_WARN
-        //  #define LASER_POWER_INLINE_S_CURVE_ACCELERATION_WARN
-        //  #warning "Combining LASER_POWER_INLINE_TRAPEZOID with S_CURVE_ACCELERATION may result in unintended behavior."
-        //#endif
+    #if ENABLED(LASER_POWER_TRAP)
+      #if DISABLED(SPINDLE_LASER_USE_PWM)
+        #error "LASER_POWER_TRAP requires SPINDLE_LASER_USE_PWM to function."
       #endif
-    #endif
-    #if ENABLED(LASER_POWER_INLINE_INVERT)
-      //#ifndef LASER_POWER_INLINE_INVERT_WARN
-      //  #define LASER_POWER_INLINE_INVERT_WARN
-      //  #warning "Enabling LASER_POWER_INLINE_INVERT means that `M5` won't kill the laser immediately; use `M5 I` instead."
-      //#endif
     #endif
   #else
     #if SPINDLE_LASER_POWERUP_DELAY < 1
       #error "SPINDLE_LASER_POWERUP_DELAY must be greater than 0."
     #elif SPINDLE_LASER_POWERDOWN_DELAY < 1
       #error "SPINDLE_LASER_POWERDOWN_DELAY must be greater than 0."
-    #elif ENABLED(LASER_MOVE_POWER)
-      #error "LASER_MOVE_POWER requires LASER_POWER_INLINE."
-    #elif ANY(LASER_POWER_INLINE_TRAPEZOID, LASER_POWER_INLINE_INVERT, LASER_MOVE_G0_OFF, LASER_MOVE_POWER)
-      #error "Enabled an inline laser feature without inline laser power being enabled."
     #endif
   #endif
   #define _PIN_CONFLICT(P) (PIN_EXISTS(P) && P##_PIN == SPINDLE_LASER_PWM_PIN)
@@ -3111,8 +3162,8 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
       #error "SPINDLE_LASER_PWM_PIN not assigned to a PWM pin."
     #elif !defined(SPINDLE_LASER_PWM_INVERT)
       #error "SPINDLE_LASER_PWM_INVERT is required for (SPINDLE|LASER)_FEATURE."
-    #elif !(defined(SPEED_POWER_INTERCEPT) && defined(SPEED_POWER_MIN) && defined(SPEED_POWER_MAX) && defined(SPEED_POWER_STARTUP))
-      #error "SPINDLE_LASER_PWM equation constant(s) missing."
+    #elif !(defined(SPEED_POWER_MIN) && defined(SPEED_POWER_MAX) && defined(SPEED_POWER_STARTUP))
+      #error "SPINDLE_LASER_USE_PWM equation constant(s) missing."
     #elif _PIN_CONFLICT(X_MIN)
       #error "SPINDLE_LASER_PWM pin conflicts with X_MIN_PIN."
     #elif _PIN_CONFLICT(X_MAX)
