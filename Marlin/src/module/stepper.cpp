@@ -216,8 +216,6 @@ uint32_t Stepper::advance_divisor = 0,
 
   uint32_t Stepper::nextAdvanceISR = LA_ADV_NEVER,
            Stepper::la_interval = LA_ADV_NEVER;
-  int32_t  Stepper::la_delta_error = 0,
-           Stepper::la_advance_steps = 0;
 #endif
 
 #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -1790,7 +1788,13 @@ void Stepper::pulse_phase_isr() {
       #endif
 
       if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
-        #if HAS_E0_STEP || ENABLED(MIXING_EXTRUDER)
+        #if ENABLED(MIXING_EXTRUDER)
+          delta_error.e += advance_dividend.e;
+          if (delta_error.e >= 0) {
+            count_position.e += count_direction.e;
+            step_needed.e = true;
+          }
+        #elif HAS_E0_STEP
           PULSE_PREP(E);
         #endif
       }
@@ -1832,11 +1836,13 @@ void Stepper::pulse_phase_isr() {
       PULSE_START(W);
     #endif
 
-    #if ENABLED(MIXING_EXTRUDER)
-      if (step_needed.e) E_STEP_WRITE(mixer.get_next_stepper(), !INVERT_E_STEP_PIN);
-    #elif HAS_E0_STEP
-      PULSE_START(E);
-    #endif
+    if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
+      #if ENABLED(MIXING_EXTRUDER)
+        if (step_needed.e) E_STEP_WRITE(mixer.get_next_stepper(), !INVERT_E_STEP_PIN);
+      #elif HAS_E0_STEP
+        PULSE_START(E);
+      #endif
+    }
 
     #if ENABLED(I2S_STEPPER_STREAM)
       i2s_push_sample();
@@ -2001,8 +2007,8 @@ uint32_t Stepper::block_phase_isr() {
 
         #if ENABLED(LIN_ADVANCE)
           if (current_block->la_advance_rate) {
-            const uint32_t la_step_rate = la_advance_steps < current_block->max_adv_steps ? current_block->la_advance_rate : 0;
-            la_interval = calc_timer_interval(acc_step_rate + la_step_rate) << current_block->la_scaling;
+            const uint32_t la_step_rate = acc_step_rate + current_block->la_advance_rate;
+            la_interval = calc_timer_interval(la_step_rate) << current_block->la_scaling;
           }
           else if (LA_steps) nextAdvanceISR = 0;
         #endif
@@ -2074,11 +2080,13 @@ uint32_t Stepper::block_phase_isr() {
         deceleration_time += interval;
 
         #if ENABLED(LIN_ADVANCE)
-          if (current_block->la_advance_rate) {
-            const uint32_t la_step_rate = la_advance_steps > current_block->final_adv_steps ? current_block->la_advance_rate : 0;
-            if (la_step_rate != step_rate) {
-              bool reverse_e = la_step_rate > step_rate;
-              la_interval = calc_timer_interval(reverse_e ? la_step_rate - step_rate : step_rate - la_step_rate) << current_block->la_scaling;
+          if (current_block->la_advance_rate && current_block->la_advance_rate != step_rate) {
+            uint32_t la_step_rate;
+            if (current_block->la_advance_rate < step_rate) {
+              la_step_rate = step_rate - current_block->la_advance_rate;
+            }
+            else {
+              la_step_rate = current_block->la_advance_rate - step_rate;
 
               if (reverse_e != motor_direction(E_AXIS)) {
                 TBI(last_direction_bits, E_AXIS);
@@ -2103,6 +2111,7 @@ uint32_t Stepper::block_phase_isr() {
                 DIR_WAIT_AFTER();
               }
             }
+            la_interval = calc_timer_interval(la_step_rate) << current_block->la_scaling;
           }
         #endif // LIN_ADVANCE
 
@@ -2140,13 +2149,25 @@ uint32_t Stepper::block_phase_isr() {
         // The timer interval is just the nominal value for the nominal speed
         interval = ticks_nominal;
 
-        // Update laser - Cruising
-        #if ENABLED(LASER_POWER_INLINE_TRAPEZOID)
-          if (laser_trap.enabled) {
-            if (!laser_trap.cruise_set) {
-              laser_trap.cur_power = current_block->laser.power;
-              cutter.set_ocr_power(laser_trap.cur_power);
-              laser_trap.cruise_set = true;
+        #if ENABLED(LIN_ADVANCE)
+          // No more acceleration, so re-use ticks_nominal but discount the effect of oversampling_factor
+          if (current_block->la_advance_rate)
+            la_interval = (ticks_nominal << current_block->la_scaling) << oversampling_factor;
+        #endif
+      }
+
+      /**
+       * Adjust Laser Power - Cruise
+       * power - direct or floor adjusted active laser power.
+       */
+      #if ENABLED(LASER_POWER_TRAP)
+        if (cutter.cutter_mode == CUTTER_MODE_CONTINUOUS) {
+          if (step_events_completed + 1 == accelerate_until) {
+            if (planner.laser_inline.status.isPowered && planner.laser_inline.status.isEnabled) {
+              if (current_block->laser.trap_ramp_entry_incr > 0) {
+                current_block->laser.trap_ramp_active_pwr = current_block->laser.power;
+                cutter.apply_power(current_block->laser.power);
+              }
             }
             #if ENABLED(LASER_POWER_INLINE_TRAPEZOID_CONT)
               laser_trap.till_update = LASER_POWER_INLINE_TRAPEZOID_CONT_PER;
@@ -2347,10 +2368,6 @@ uint32_t Stepper::block_phase_isr() {
 
       // Initialize the trapezoid generator from the current block.
       #if ENABLED(LIN_ADVANCE)
-        #if DISABLED(MIXING_EXTRUDER) && E_STEPPERS > 1
-          // If the now active extruder wasn't in use during the last move, its pressure is most likely gone.
-          if (stepper_extruder != last_moved_extruder) la_advance_steps = 0;
-        #endif
         if (current_block->la_advance_rate) {
           advance_dividend.e <<= current_block->la_scaling;
           // discount the effect of frequency scaling for the stepper
@@ -2435,8 +2452,8 @@ uint32_t Stepper::block_phase_isr() {
 
       #if ENABLED(LIN_ADVANCE)
         if (current_block->la_advance_rate) {
-          const uint32_t la_step_rate = la_advance_steps < current_block->max_adv_steps ? current_block->la_advance_rate : 0;
-          la_interval = calc_timer_interval(current_block->initial_rate + la_step_rate) << current_block->la_scaling;
+          const uint32_t la_step_rate = current_block->initial_rate + current_block->la_advance_rate;
+          la_interval = calc_timer_interval(la_step_rate) << current_block->la_scaling;
         }
       #endif
     }
