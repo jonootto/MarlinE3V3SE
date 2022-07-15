@@ -1264,7 +1264,7 @@ void Temperature::manage_heater() {
 
       #if ENABLED(TEMP_SENSOR_1_AS_REDUNDANT)
         // Make sure measured temperatures are close together
-        if (ABS(degHotend(0) - degHotendRedundant()) > MAX_REDUNDANT_TEMP_SENSOR_DIFF)
+        if (ABS(degHotend(0) - degHotendRedundant()) > TEMP_SENSOR_REDUNDANT_MAX_DIFF)
           _temp_error(H_E0, PSTR(STR_REDUNDANCY), GET_TEXT(MSG_ERR_REDUNDANT_TEMP));
       #endif
 

@@ -799,22 +799,34 @@ void Planner::calculate_trapezoid_for_block(block_t * const block, const_float_t
 
   const int32_t accel = block->acceleration_steps_per_s2;
 
-          // Steps required for acceleration, deceleration to/from nominal rate
-  uint32_t accelerate_steps = CEIL(estimate_acceleration_distance(initial_rate, block->nominal_rate, accel)),
-           decelerate_steps = FLOOR(estimate_acceleration_distance(block->nominal_rate, final_rate, -accel));
-          // Steps between acceleration and deceleration, if any
-  int32_t plateau_steps = block->step_event_count - accelerate_steps - decelerate_steps;
+  // Steps for acceleration, plateau and deceleration
+  int32_t plateau_steps = block->step_event_count;
+  uint32_t accelerate_steps = 0,
+           decelerate_steps = 0;
 
-  // Does accelerate_steps + decelerate_steps exceed step_event_count?
-  // Then we can't possibly reach the nominal rate, there will be no cruising.
-  // Use intersection_distance() to calculate accel / braking time in order to
-  // reach the final_rate exactly at the end of this block.
-  if (plateau_steps < 0) {
-    const float accelerate_steps_float = CEIL(intersection_distance(initial_rate, final_rate, accel, block->step_event_count));
-    accelerate_steps = _MIN(uint32_t(_MAX(accelerate_steps_float, 0)), block->step_event_count);
-    decelerate_steps = block->step_event_count - accelerate_steps;
-    plateau_steps = 0;
+  if (accel != 0) {
+    // Steps required for acceleration, deceleration to/from nominal rate
+    const float nominal_rate_sq = sq(float(block->nominal_rate));
+    float accelerate_steps_float = (nominal_rate_sq - sq(float(initial_rate))) * (0.5f / accel);
+    accelerate_steps = CEIL(accelerate_steps_float);
+    const float decelerate_steps_float = (nominal_rate_sq - sq(float(final_rate))) * (0.5f / accel);
+    decelerate_steps = decelerate_steps_float;
 
+<<<<<<< HEAD
+=======
+    // Steps between acceleration and deceleration, if any
+    plateau_steps -= accelerate_steps + decelerate_steps;
+
+    // Does accelerate_steps + decelerate_steps exceed step_event_count?
+    // Then we can't possibly reach the nominal rate, there will be no cruising.
+    // Calculate accel / braking time in order to reach the final_rate exactly
+    // at the end of this block.
+    if (plateau_steps < 0) {
+      accelerate_steps_float = CEIL((block->step_event_count + accelerate_steps_float - decelerate_steps_float) * 0.5f);
+      accelerate_steps = _MIN(uint32_t(_MAX(accelerate_steps_float, 0)), block->step_event_count);
+      decelerate_steps = block->step_event_count - accelerate_steps;
+
+>>>>>>> fc0615fbd1 (⚡️ Optimize Planner calculations (#24484))
       #if ENABLED(S_CURVE_ACCELERATION)
         // We won't reach the cruising rate. Let's calculate the speed we will reach
         cruise_rate = final_speed(initial_rate, accel, accelerate_steps);
@@ -1449,7 +1461,7 @@ void Planner::check_axes_activity() {
     for (uint8_t b = block_buffer_tail; b != block_buffer_head; b = next_block_index(b)) {
       const block_t * const block = &block_buffer[b];
       if (NUM_AXIS_GANG(block->steps.x, || block->steps.y, || block->steps.z, || block->steps.i, || block->steps.j, || block->steps.k, || block->steps.u, || block->steps.v, || block->steps.w)) {
-        const float se = (float)block->steps.e / block->step_event_count * SQRT(block->nominal_speed_sqr); // mm/sec;
+        const float se = float(block->steps.e) / block->step_event_count * block->nominal_speed; // mm/sec
         NOLESS(high, se);
       }
     }
@@ -2390,7 +2402,7 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
   if (speed_factor < 1.0f) {
     current_speed *= speed_factor;
     block->nominal_rate *= speed_factor;
-    block->nominal_speed_sqr = block->nominal_speed_sqr * sq(speed_factor);
+    block->nominal_speed *= speed_factor;
   }
 
   // Compute and limit the acceleration rate for the trapezoid generator.
