@@ -485,10 +485,10 @@ class Stepper {
 
     #if ENABLED(LIN_ADVANCE)
       static constexpr uint32_t LA_ADV_NEVER = 0xFFFFFFFF;
-      static uint32_t nextAdvanceISR, LA_isr_rate;
-      static uint16_t LA_current_adv_steps, LA_final_adv_steps, LA_max_adv_steps; // Copy from current executed block. Needed because current_block is set to NULL "too early".
-      static int8_t LA_steps;
-      static bool LA_use_advance_lead;
+      static uint32_t nextAdvanceISR,
+                      la_interval;      // Interval between ISR calls for LA
+      static int32_t  la_delta_error,   // Analogue of delta_error.e for E steps in LA ISR
+                      la_advance_steps; // Count of steps added to increase nozzle pressure
     #endif
 
     #if ENABLED(INTEGRATED_BABYSTEPPING)
