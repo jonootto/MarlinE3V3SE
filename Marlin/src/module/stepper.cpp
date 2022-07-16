@@ -1789,19 +1789,11 @@ void Stepper::pulse_phase_isr() {
         PULSE_PREP(W);
       #endif
 
-      #if HAS_E0_STEP || ENABLED(MIXING_EXTRUDER)
-        PULSE_PREP(E);
-
-        #if ENABLED(LIN_ADVANCE)
-          if (step_needed.e && current_block->la_advance_rate) {
-            // don't actually step here, but do subtract movements steps
-            // from the linear advance step count
-            step_needed.e = false;
-            count_position.e -= count_direction.e;
-            la_advance_steps--;
-          }
+      if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
+        #if HAS_E0_STEP || ENABLED(MIXING_EXTRUDER)
+          PULSE_PREP(E);
         #endif
-      #endif
+      }
     }
 
     #if ISR_MULTI_STEPS
@@ -1885,11 +1877,13 @@ void Stepper::pulse_phase_isr() {
       PULSE_STOP(W);
     #endif
 
-    #if ENABLED(MIXING_EXTRUDER)
-      if (step_needed.e) E_STEP_WRITE(mixer.get_stepper(), INVERT_E_STEP_PIN);
-    #elif HAS_E0_STEP
-      PULSE_STOP(E);
-    #endif
+    if (TERN1(LIN_ADVANCE, !current_block->la_advance_rate)) {
+      #if ENABLED(MIXING_EXTRUDER)
+        if (step_needed.e) E_STEP_WRITE(mixer.get_stepper(), INVERT_E_STEP_PIN);
+      #elif HAS_E0_STEP
+        PULSE_STOP(E);
+      #endif
+    }
 
     #if ISR_MULTI_STEPS
       if (events_to_do) START_LOW_PULSE();
