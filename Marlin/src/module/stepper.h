@@ -709,7 +709,7 @@ class Stepper {
     static void _set_position(const int32_t &a, const int32_t &b, const int32_t &c, const int32_t &e);
     FORCE_INLINE static void _set_position(const abce_long_t &spos) { _set_position(spos.a, spos.b, spos.c, spos.e); }
 
-    FORCE_INLINE static uint32_t calc_timer_interval(uint32_t step_rate, uint8_t *loops) {
+    static uint32_t calc_timer_interval(uint32_t step_rate) {
       uint32_t timer;
 
       // Scale the frequency, as requested by the caller
@@ -767,6 +767,37 @@ class Stepper {
       #endif
 
       return timer;
+    }
+
+    static uint32_t calc_timer_interval(uint32_t step_rate, uint8_t *loops) {
+      uint8_t multistep = 1;
+      #if DISABLED(DISABLE_MULTI_STEPPING)
+
+        // The stepping frequency limits for each multistepping rate
+        static const uint32_t limit[] PROGMEM = {
+          (  MAX_STEP_ISR_FREQUENCY_1X     ),
+          (  MAX_STEP_ISR_FREQUENCY_2X >> 1),
+          (  MAX_STEP_ISR_FREQUENCY_4X >> 2),
+          (  MAX_STEP_ISR_FREQUENCY_8X >> 3),
+          ( MAX_STEP_ISR_FREQUENCY_16X >> 4),
+          ( MAX_STEP_ISR_FREQUENCY_32X >> 5),
+          ( MAX_STEP_ISR_FREQUENCY_64X >> 6),
+          (MAX_STEP_ISR_FREQUENCY_128X >> 7)
+        };
+
+        // Select the proper multistepping
+        uint8_t idx = 0;
+        while (idx < 7 && step_rate > (uint32_t)pgm_read_dword(&limit[idx])) {
+          step_rate >>= 1;
+          multistep <<= 1;
+          ++idx;
+        };
+      #else
+        NOMORE(step_rate, uint32_t(MAX_STEP_ISR_FREQUENCY_1X));
+      #endif
+      *loops = multistep;
+
+      return calc_timer_interval(step_rate);
     }
 
     #if ENABLED(S_CURVE_ACCELERATION)
