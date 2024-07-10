@@ -218,7 +218,6 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=POW
       COPY(info.retract, fwretract.current_retract);
       info.retract_hop = fwretract.current_hop;
     #endif
-
     // Elapsed print job time
     info.print_job_elapsed = print_job_timer.duration();
 
@@ -374,7 +373,6 @@ void PrintJobRecovery::resume() {
   //
 
   gcode.process_subcommands_now_P(PSTR("G92.9E0")); // Reset E to 0
-
   #if Z_HOME_TO_MAX
 
     float z_now = z_raised;
@@ -385,7 +383,6 @@ void PrintJobRecovery::resume() {
             "G1Z%sF1200"  // Move Z down to (raised) height
           ), dtostrf(z_now, 1, 3, str_1));
     gcode.process_subcommands_now(cmd);
-
   #else
 
     #if ENABLED(POWER_LOSS_RECOVER_ZHOME) && defined(POWER_LOSS_ZHOME_POS)
@@ -532,7 +529,6 @@ void PrintJobRecovery::resume() {
     dtostrf(info.current_position.y, 1, 3, str_2)
   );
   gcode.process_subcommands_now(cmd);
-
   // Move back down to the saved Z for printing
   sprintf_P(cmd, PSTR("G1Z%sF600"), dtostrf(z_print, 1, 3, str_1));
   gcode.process_subcommands_now(cmd);

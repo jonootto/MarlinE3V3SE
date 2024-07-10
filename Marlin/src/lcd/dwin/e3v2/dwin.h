@@ -307,7 +307,6 @@ typedef struct {
 
 extern HMI_value_t HMI_ValueStruct;
 extern HMI_Flag_t HMI_flag;
-
 // Show ICO
 void ICON_Print(bool show);
 void ICON_Prepare(bool show);
@@ -388,7 +387,6 @@ void HMI_Temperature(); // Temperature menu
 void HMI_Motion();      // Sports menu
 void HMI_Info();        // Information menu
 void HMI_Tune();        // Adjust the menu
-
 #if HAS_PREHEAT
   void HMI_PLAPreheatSetting(); // PLA warm-up setting
   void HMI_ABSPreheatSetting(); // ABS warm-up setting

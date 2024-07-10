@@ -1782,7 +1782,6 @@ void Stepper::pulse_phase_isr() {
 
   } while (--events_to_do);
 }
-
 // This is the last half of the stepper interrupt: This one processes and
 // properly schedules blocks from the planner. This is executed after creating
 // the step pulses, so it is not time critical, as pulses are already done.
@@ -2682,7 +2681,6 @@ void Stepper::set_axis_position(const AxisEnum a, const int32_t &v) {
   #endif
 
   count_position[a] = v;
-
   #ifdef __AVR__
     // Reenable Stepper ISR
     if (was_enabled) wake_up();

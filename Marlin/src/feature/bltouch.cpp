@@ -32,7 +32,6 @@ bool BLTouch::last_written_mode; // Initialized by settings.load, 0 = Open Drain
 
 #include "../module/servo.h"
 #include "../module/probe.h"
-
 void stop();
 
 #define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
@@ -111,7 +110,6 @@ bool BLTouch::deploy_proc() {
 
       SERIAL_ERROR_MSG(STR_STOP_BLTOUCH);  // Tell the user something is wrong, needs action
       stop();                              // but it's not too bad, no need to kill, allow restart
-
       return true;                         // Tell our caller we goofed in case he cares to know
     }
   }

@@ -55,7 +55,6 @@
 #include "../../../core/serial.h"
 #include "../../../core/macros.h"
 #include "../../../gcode/queue.h"
-
 #include "../../../module/temperature.h"
 #include "../../../module/printcounter.h"
 #include "../../../module/motion.h"
@@ -2272,13 +2271,11 @@ void HMI_Printing() {
           Popup_window_PauseOrStop();
         }
         break;
-
       case 2: // Stop
         HMI_flag.select_flag = true;
         checkkey = Print_window;
         Popup_window_PauseOrStop();
         break;
-
       default: break;
     }
   }

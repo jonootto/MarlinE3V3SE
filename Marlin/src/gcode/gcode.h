@@ -313,7 +313,6 @@
 #if IS_SCARA || defined(G0_FEEDRATE)
   #define HAS_FAST_MOVES 1
 #endif
-
 enum AxisRelative : uint8_t { REL_X, REL_Y, REL_Z, REL_E, E_MODE_ABS, E_MODE_REL };
 
 extern const char G28_STR[];

@@ -21,7 +21,6 @@
  */
 
 #include "../../inc/MarlinConfig.h"
-
 #if ENABLED(SDSUPPORT)
 
 #include "../gcode.h"
@@ -121,7 +120,6 @@ void GcodeSuite::M25() {
         host_action_pause();
       #endif
     #endif
-
   #endif
 }
 

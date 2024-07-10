@@ -222,7 +222,6 @@
 #endif
 
 Temperature thermalManager;
-
 const char str_t_thermal_runaway[] PROGMEM = STR_T_THERMAL_RUNAWAY,
            str_t_heating_failed[] PROGMEM = STR_T_HEATING_FAILED;
 

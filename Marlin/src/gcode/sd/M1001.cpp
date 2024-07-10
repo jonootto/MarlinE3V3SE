@@ -66,7 +66,6 @@ void GcodeSuite::M1001() {
 
   // SD Printing is finished when the queue reaches M1001
   card.flag.sdprinting = card.flag.sdprintdone = false;
-
   // If there's another auto#.g file to run...
   if (TERN(NO_SD_AUTOSTART, false, card.autofile_check())) return;
 

@@ -41,7 +41,6 @@
 #if HAS_BUZZER
   #include "../../../libs/buzzer.h"
 #endif
-
 #include <stdlib.h>
 
 #ifndef ENCODER_PULSES_PER_STEP
@@ -49,7 +48,6 @@
 #endif
 
 ENCODER_Rate EncoderRate;
-
 // Buzzer
 void Encoder_tick() {
   #if PIN_EXISTS(BEEPER)
