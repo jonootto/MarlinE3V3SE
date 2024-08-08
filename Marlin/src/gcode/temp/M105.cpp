@@ -23,6 +23,7 @@
 #include "../gcode.h"
 #include "../../module/temperature.h"
 
+
 /**
  * M105: Read hot end and bed temperature
  */
