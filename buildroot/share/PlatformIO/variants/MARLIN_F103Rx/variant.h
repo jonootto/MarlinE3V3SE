@@ -31,7 +31,7 @@ extern "C" {
 #define PA0  PIN_A0  // | 0       | A0             |                          |           |                       |           |
 #define PA1  PIN_A1  // | 1       | A1             |                          |           |                       |           |
 #define PA2  PIN_A2  // | 2       | A2             | USART2_TX                |           |                       |           |
-#define PA3  PIN_A3  // | 2       | A2, DAC_OUT1** | USART2_RX                |           |                       |           |
+#define PA3  PIN_A3  // | 3       | A3, DAC_OUT1** | USART2_RX                |           |                       |           |
 #define PA4  PIN_A4  // | 4       | A4, DAC_OUT2** |                          |           | SPI1_SS               |           |
 #define PA5  PIN_A5  // | 5       | A5             |                          |           | SPI1_SCK              |           |
 #define PA6  PIN_A6  // | 6       | A6             |                          |           | SPI1_MISO             |           |
@@ -101,24 +101,11 @@ extern "C" {
 #endif
 
 // Override default Arduino configuration
-
 // SPI Definitions
-#if DEFAULT_SPI == 3
-  #define PIN_SPI_SS            PA15
-  #define PIN_SPI_MOSI          PB5
-  #define PIN_SPI_MISO          PB4
-  #define PIN_SPI_SCK           PB3
-#elif DEFAULT_SPI == 2
-  #define PIN_SPI_SS            PB12
-  #define PIN_SPI_MOSI          PB15
-  #define PIN_SPI_MISO          PB14
-  #define PIN_SPI_SCK           PB13
-#else
-  #define PIN_SPI_SS            PA4
-  #define PIN_SPI_MOSI          PA7
-  #define PIN_SPI_MISO          PA6
-  #define PIN_SPI_SCK           PA5
-#endif
+#define PIN_SPI_SS              PA4
+#define PIN_SPI_MOSI            PA7
+#define PIN_SPI_MISO            PA6
+#define PIN_SPI_SCK             PA5
 
 // I2C Definitions
 #define PIN_WIRE_SDA            PB7
@@ -126,12 +113,11 @@ extern "C" {
 
 // Timer Definitions
 #ifndef TIMER_TONE
-  #define TIMER_TONE            TIM3  // TIMER_TONE must be defined in this file
+  #define TIMER_TONE            TIM3
 #endif
 #ifndef TIMER_SERVO
-  #define TIMER_SERVO           TIM2  // TIMER_SERVO must be defined in this file
+  #define TIMER_SERVO           TIM2
 #endif
-
 // UART Definitions
 // Define here Serial instance number to map on Serial generic name
 #define SERIAL_UART_INSTANCE    1
@@ -140,7 +126,7 @@ extern "C" {
 #define PIN_SERIAL_RX           PA10
 #define PIN_SERIAL_TX           PA9
 
-// Extra HAL modules
+/* Extra HAL modules */
 #if defined(STM32F103xE) || defined(STM32F103xG)
 #define HAL_DAC_MODULE_ENABLED
 #endif

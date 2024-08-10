@@ -43,8 +43,7 @@
 #endif
 
 // endianness swap
-#define BE16_P(V) ( ((uint8_t*)(V))[0] << 8U | ((uint8_t*)(V))[1] )
-#define BE32_P(V) ( ((uint8_t*)(V))[0] << 24U | ((uint8_t*)(V))[1] << 16U | ((uint8_t*)(V))[2] << 8U | ((uint8_t*)(V))[3] )
+inline uint16_t swap16(const uint16_t value) { return (value & 0xFFU) << 8U | (value >> 8U); }
 
 #if ENABLED(DGUS_LCD_UI_ORIGIN)
   #include "origin/DGUSScreenHandler.h"
@@ -56,22 +55,4 @@
   #include "hiprecy/DGUSScreenHandler.h"
 #endif
 
-extern DGUSScreenHandlerClass ScreenHandler;
-
-// Helper to define a DGUS_VP_Variable for common use-cases.
-#define VPHELPER(VPADR, VPADRVAR, RXFPTR, TXFPTR) { \
-  .VP = VPADR, \
-  .memadr = VPADRVAR, \
-  .size = sizeof(VPADRVAR), \
-  .set_by_display_handler = RXFPTR, \
-  .send_to_display_handler = TXFPTR \
-}
-
-// Helper to define a DGUS_VP_Variable when the size of the var cannot be determined automatically (e.g., a string)
-#define VPHELPER_STR(VPADR, VPADRVAR, STRLEN, RXFPTR, TXFPTR) { \
-  .VP = VPADR, \
-  .memadr = VPADRVAR, \
-  .size = STRLEN, \
-  .set_by_display_handler = RXFPTR, \
-  .send_to_display_handler = TXFPTR \
-}
+extern DGUSScreenHandler ScreenHandler;

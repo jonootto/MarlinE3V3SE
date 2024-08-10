@@ -25,7 +25,11 @@
  * Release version. Leave the Marlin version or apply a custom scheme.
  */
 #ifndef SHORT_BUILD_VERSION
-  #define SHORT_BUILD_VERSION "bugfix-2.1.x"
+  #if ENABLED(HIGH_SPEED_1)
+    #define SHORT_BUILD_VERSION "V1.0.6"
+  #else
+    #define SHORT_BUILD_VERSION "Ender-3V3 SE_Ten_P1T14T" // GD32F303RET6 + Multilanguage 1.Chinese 2.English 3.German 4.Russian 5.French 6.Turkish 7.Spanish 8.Italian 9.Portuguese
+  #endif  
 #endif
 
 /**
@@ -52,7 +56,7 @@
  * to alert users to major changes.
  */
 
-#define MARLIN_HEX_VERSION 02010200
+#define MARLIN_HEX_VERSION 02000801
 #ifndef REQUIRED_CONFIGURATION_H_VERSION
   #define REQUIRED_CONFIGURATION_H_VERSION MARLIN_HEX_VERSION
 #endif
@@ -73,7 +77,7 @@
  * Define a generic printer name to be output to the LCD after booting Marlin.
  */
 #ifndef MACHINE_NAME
-  #define MACHINE_NAME "3D Printer"
+  #define MACHINE_NAME "Ender-3V3 SE"
 #endif
 
 /**
@@ -97,7 +101,7 @@
    * documentation about a specific Marlin release. Displayed in the Info Menu.
    */
 #ifndef WEBSITE_URL
-  #define WEBSITE_URL "marlinfw.org"
+  #define WEBSITE_URL "www.creality.com"
 #endif
 
 /**
@@ -105,18 +109,18 @@
  * Currently only supported by DUE platform
  */
 #ifndef USB_DEVICE_VENDOR_ID
-  #define USB_DEVICE_VENDOR_ID            0x03EB /* ATMEL VID */
+  #define  USB_DEVICE_VENDOR_ID           0x03EB /* ATMEL VID */
 #endif
 #ifndef USB_DEVICE_PRODUCT_ID
-  #define USB_DEVICE_PRODUCT_ID           0x2424 /* MSC / CDC */
+  #define  USB_DEVICE_PRODUCT_ID          0x2424 /* MSC / CDC */
 #endif
 //! USB Device string definitions (Optional)
 #ifndef USB_DEVICE_MANUFACTURE_NAME
-  #define USB_DEVICE_MANUFACTURE_NAME     WEBSITE_URL
+  #define  USB_DEVICE_MANUFACTURE_NAME    WEBSITE_URL
 #endif
 #ifdef CUSTOM_MACHINE_NAME
-  #define USB_DEVICE_PRODUCT_NAME         CUSTOM_MACHINE_NAME
+  #define  USB_DEVICE_PRODUCT_NAME        CUSTOM_MACHINE_NAME
 #else
-  #define USB_DEVICE_PRODUCT_NAME         MACHINE_NAME
+  #define  USB_DEVICE_PRODUCT_NAME        MACHINE_NAME
 #endif
-#define USB_DEVICE_SERIAL_NAME            "123985739853"
+#define  USB_DEVICE_SERIAL_NAME           "123985739853"

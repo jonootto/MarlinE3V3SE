@@ -29,14 +29,61 @@
   #define BOARD_INFO_NAME "BTT E3 RRF"
 #endif
 
-#define USES_DIAG_JUMPERS
+#define FPC2_PIN                            PB11
+#define FPC3_PIN                            PB10
+#define FPC4_PIN                            PE12
+#define FPC5_PIN                            PE13
+#define FPC6_PIN                            PE14
+#define FPC7_PIN                            PE15
+#define FPC8_PIN                            PA3
+#define FPC9_PIN                            PA2
+#define FPC10_PIN                           PA8
+#define FPC11_PIN                           PC15
+#define FPC12_PIN                           PC14
+#define FPC13_PIN                           PC13
+#define FPC14_PIN                           PE6
+#define FPC15_PIN                           PE5
+#define FPC16_PIN                           PE4
+#define FPC17_PIN                           PE3
 
-// Add-on board for IDEX conversion
 //#define BTT_E3_RRF_IDEX_BOARD
+
+#ifdef BTT_E3_RRF_IDEX_BOARD
+
+  #define X2_ENABLE_PIN                FPC13_PIN  // X2EN
+  #define X2_STEP_PIN                  FPC11_PIN  // X2STP
+  #define X2_DIR_PIN                   FPC10_PIN  // X2DIR
+  #define X2_SERIAL_TX_PIN             FPC12_PIN  // X2UART
+  #define X2_SERIAL_RX_PIN             FPC12_PIN  // X2UART
+  #if X_HOME_TO_MIN
+    #define X_MAX_PIN                   FPC2_PIN  // X2-STOP
+  #else
+    #define X_MIN_PIN                   FPC2_PIN  // X2-STOP
+  #endif
+
+  #define E1_ENABLE_PIN                 FPC7_PIN  // E1EN
+  #define E1_STEP_PIN                   FPC5_PIN  // E1STP
+  #define E1_DIR_PIN                    FPC4_PIN  // E1DIR
+  #define E1_SERIAL_TX_PIN              FPC6_PIN  // E1UART
+  #define E1_SERIAL_RX_PIN              FPC6_PIN  // E1UART
+
+  #ifndef FIL1_RUNOUT2_PIN
+    #define FIL_RUNOUT2_PIN             FPC3_PIN  // E1-STOP
+  #endif
+
+  #define HEATER_1_PIN                 FPC16_PIN  // "HE1"
+
+  #define PT100_PIN                     FPC8_PIN  // Analog Input "PT100"(INA826)
+  #define TEMP_1_PIN                    FPC9_PIN  // Analog Input "TH1"
+
+  #define FAN1_PIN                     FPC15_PIN  // "FAN0" in IDEX board
+  #define FAN2_PIN                     FPC14_PIN  // "FAN1" in IDEX board
+
+#endif
 
 // Onboard I2C EEPROM
 #define I2C_EEPROM
-#define MARLIN_EEPROM_SIZE 0x1000                 // 4K
+#define MARLIN_EEPROM_SIZE 0x1000                 // 4KB
 
 //
 // Servos
@@ -50,14 +97,6 @@
 #define Y_STOP_PIN                          PC1   // Y-STOP
 #define Z_STOP_PIN                          PC2   // Z-STOP
 
-#if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #if X2_USE_ENDSTOP == _XMAX_
-    #define X_MAX_PIN                   FPC2_PIN  // X2-STOP
-  #elif X2_USE_ENDSTOP == _XMIN_
-    #define X_MIN_PIN                   FPC2_PIN  // X2-STOP
-  #endif
-#endif
-
 //
 // Z Probe must be this pin
 //
@@ -68,10 +107,6 @@
 //
 #ifndef FIL_RUNOUT_PIN
   #define FIL_RUNOUT_PIN                    PC3   // E0-STOP
-#endif
-
-#if !defined(FIL1_RUNOUT2_PIN) && ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #define FIL_RUNOUT2_PIN               FPC3_PIN  // E1-STOP
 #endif
 
 //
@@ -100,39 +135,24 @@
 #define E0_STEP_PIN                         PD12
 #define E0_DIR_PIN                          PD13
 
-#if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #define E1_ENABLE_PIN                 FPC7_PIN  // E1EN
-  #define E1_STEP_PIN                   FPC5_PIN  // E1STP
-  #define E1_DIR_PIN                    FPC4_PIN  // E1DIR
-
-  #define X2_ENABLE_PIN                FPC13_PIN  // X2EN
-  #define X2_STEP_PIN                  FPC11_PIN  // X2STP
-  #define X2_DIR_PIN                   FPC10_PIN  // X2DIR
-#endif
-
 /**
  * TMC2208/TMC2209 stepper drivers
  */
 #if HAS_TMC_UART
+  //
+  // Software serial
+  //
   #define X_SERIAL_TX_PIN                   PD6
-  #define X_SERIAL_RX_PIN        X_SERIAL_TX_PIN
+  #define X_SERIAL_RX_PIN                   PD6
 
   #define Y_SERIAL_TX_PIN                   PD1
-  #define Y_SERIAL_RX_PIN        Y_SERIAL_TX_PIN
+  #define Y_SERIAL_RX_PIN                   PD1
 
   #define Z_SERIAL_TX_PIN                   PD15
-  #define Z_SERIAL_RX_PIN        Z_SERIAL_TX_PIN
+  #define Z_SERIAL_RX_PIN                   PD15
 
   #define E0_SERIAL_TX_PIN                  PD11
-  #define E0_SERIAL_RX_PIN      E0_SERIAL_TX_PIN
-
-  #if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-    #define X2_SERIAL_TX_PIN           FPC12_PIN  // X2UART
-    #define X2_SERIAL_RX_PIN    X2_SERIAL_TX_PIN
-
-    #define E1_SERIAL_TX_PIN            FPC6_PIN  // E1UART
-    #define E1_SERIAL_RX_PIN    E1_SERIAL_TX_PIN
-  #endif
+  #define E0_SERIAL_RX_PIN                  PD11
 
   // Reduce baud rate to improve software serial reliability
   #define TMC_BAUD_RATE 19200
@@ -144,37 +164,19 @@
 #define TEMP_BED_PIN                        PA1   // Analog Input "TB"
 #define TEMP_0_PIN                          PA0   // Analog Input "TH0"
 
-#if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #define TEMP_1_PIN                    FPC9_PIN  // Analog Input "TH1"
-  #define PT100_PIN                     FPC8_PIN  // Analog Input "PT100" (INA826)
-#endif
-
 //
 // Heaters / Fans
 //
 #define HEATER_BED_PIN                      PB4   // "HB"
 #define HEATER_0_PIN                        PB3   // "HE0"
 
-#if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #define HEATER_1_PIN                 FPC16_PIN  // "HE1"
-#endif
-
 #define FAN_PIN                             PB5   // "FAN0"
+//#define FAN1_PIN                          PB6   // "FAN1"
 
 #ifndef CONTROLLER_FAN_PIN
   #define CONTROLLER_FAN_PIN                PB6   // "FAN1"
 #endif
 
-#if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #define FAN1_PIN                     FPC15_PIN  // "FAN0" in IDEX board
-  #define FAN2_PIN                     FPC14_PIN  // "FAN1" in IDEX board
-#else
-  //#define FAN1_PIN                        PB6   // "FAN1"
-#endif
-
-//
-// Misc. Functions
-//
 #ifndef NEOPIXEL_PIN
   #define NEOPIXEL_PIN                      PB7   // LED driving pin
 #endif
@@ -184,24 +186,24 @@
 #endif
 
 /**
- *              BTT E3 RRF
- *                ------
- * (BEEPER)  PE8 | 1  2 | PE9  (BTN_ENC)
- * (BTN_EN1) PE7 | 3  4 | RESET
- * (BTN_EN2) PB2   5  6 | PE10 (LCD_D4)
- * (LCD_RS)  PB1 | 7  8 | PE11 (LCD_EN)
- *           GND | 9 10 | 5V
- *                ------
+ *               BTT E3 RRF
+ *                 _____
+ *             5V | 1 2 | GND
+ *  (LCD_EN) PE11 | 3 4 | PB1  (LCD_RS)
+ *  (LCD_D4) PE10 | 5 6   PB2  (BTN_EN2)
+ *          RESET | 7 8 | PE7  (BTN_EN1)
+ * (BTN_ENC) PE9  | 9 10| PE8  (BEEPER)
+ *                 -----
  *                 EXP1
  */
 
 #if HAS_WIRED_LCD
 
-  #if EITHER(CR10_STOCKDISPLAY, LCD_FOR_MELZI)
+  #if ENABLED(CR10_STOCKDISPLAY)
 
     #define BEEPER_PIN                      PE8
-
     #define BTN_ENC                         PE9
+
     #define BTN_EN1                         PE7
     #define BTN_EN2                         PB2
 
@@ -209,47 +211,14 @@
     #define LCD_PINS_ENABLE                 PE11
     #define LCD_PINS_D4                     PE10
 
-    #if ENABLED(LCD_FOR_MELZI)
-
-      #ifndef NO_CONTROLLER_CUSTOM_WIRING_WARNING
-        #error "CAUTION! LCD_FOR_MELZI requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. (Define NO_CONTROLLER_CUSTOM_WIRING_WARNING to suppress this warning.)"
-      #endif
-
-     /** LCD_FOR_MELZI display pinout
-      *
-      *               BTT E3 RRF                                   Display Ribbon
-      *                ------                                         ------
-      * (BEEPER)  PE8 | 1  2 | PE9  (BTN_ENC)                    GND |10  9 | 5V
-      * (BTN_EN1) PE7 | 3  4 | RESET                          BEEPER | 8  7 | ESTOP    (RESET)
-      * (BTN_EN2) PB2   5  6 | PE10 (LCD_D4)       (BTN_ENC) ENC_BTN | 6  5 | LCD_SCLK (LCD_D4)
-      * (LCD_RS)  PB1 | 7  8 | PE11 (LCD_EN)       (BTN_EN2) ENC_A   | 4  3 | LCD_DATA (LCD_EN)
-      *           GND | 9 10 | 5V                  (BTN_EN1) ENC_B   | 2  1 | LCD_CS   (LCD_RS)
-      *                ------                                         ------
-      *                 EXP1                                           LCD
-      *
-      * Needs custom cable:
-      *
-      *    Board   Adapter   Display Ribbon (coming from display)
-      *  ----------------------------------
-      *  EXP1-10 ---------- LCD-9   5V
-      *  EXP1-9 ----------- LCD-10  GND
-      *  EXP1-8 ----------- LCD-3   LCD_EN
-      *  EXP1-7 ----------- LCD-1   LCD_RS
-      *  EXP1-6 ----------- LCD-5   LCD_D4
-      *  EXP1-5 ----------- LCD-4   EN2
-      *  EXP1-4 ----------- LCD-7   RESET
-      *  EXP1-3 ----------- LCD-2   EN1
-      *  EXP1-2 ----------- LCD-6   BTN
-      *  EXP1-1 ----------- LCD-8   BEEPER
-      */
-
-    #endif
+    // CR10_STOCKDISPLAY default timing is too fast
+    #undef BOARD_ST7920_DELAY_1
+    #undef BOARD_ST7920_DELAY_2
+    #undef BOARD_ST7920_DELAY_3
 
   #elif ENABLED(ZONESTAR_LCD)                     // ANET A8 LCD Controller - Must convert to 3.3V - CONNECTING TO 5V WILL DAMAGE THE BOARD!
 
-    #ifndef NO_CONTROLLER_CUSTOM_WIRING_WARNING
-      #error "CAUTION! ZONESTAR_LCD requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. (Define NO_CONTROLLER_CUSTOM_WIRING_WARNING to suppress this warning.)"
-    #endif
+    #error "CAUTION! ZONESTAR_LCD requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. Comment out this line to continue."
 
     #define LCD_PINS_RS                     PE10
     #define LCD_PINS_ENABLE                 PE9
@@ -277,37 +246,35 @@
 
     #if ENABLED(TFTGLCD_PANEL_SPI)
 
-      #ifndef NO_CONTROLLER_CUSTOM_WIRING_WARNING
-        #error "CAUTION! TFTGLCD_PANEL_SPI requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. (Define NO_CONTROLLER_CUSTOM_WIRING_WARNING to suppress this warning.)"
-      #endif
+      #error "CAUTION! TFTGLCD_PANEL_SPI requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. Comment out this line to continue."
 
       /**
        * TFTGLCD_PANEL_SPI display pinout
        *
-       *                  Board                       Display
-       *                  ------                       ------
-       * (SD_DET)    PE8 | 1  2 | PE9 (BEEPER)     5V |10  9 | GND
-       * (MOD_RESET) PE7 | 3  4 | RESET            -- | 8  7 | (SD_DET)
-       * (SD_CS)     PB2   5  6 | PE10        (MOSI)    6  5 | --
-       * (LCD_CS)    PB1 | 7  8 | PE11        (SD_CS) | 4  3 | (LCD_CS)
-       *             GND | 9 10 | 5V          (SCK)   | 2  1 | (MISO)
-       *                  ------                       ------
-       *                   EXP1                         EXP1
+       *               Board                                      Display
+       *               _____                                       _____
+       *           5V | 1 2 | GND                (SPI1-MISO) MISO | 1 2 | SCK   (SPI1-SCK)
+       * (FREE)  PE11 | 3 4 | PB1  (LCD_CS)      (PE7)     LCD_CS | 3 4 | SD_CS (PB2)
+       * (FREE)  PE10 | 5 6 | PB2  (SD_CS)                 (FREE) | 5 6 | MOSI  (SPI1-MOSI)
+       *        RESET | 7 8 | PE7  (MOD_RESET)   (PE8)     SD_DET | 7 8 | (FREE)
+       * (BEEPER) PE9 | 9 10| PE8  (SD_DET)                   GND | 9 10| 5V
+       *               -----                                       -----
+       *                EXP1                                        EXP1
        *
        * Needs custom cable:
        *
        *    Board   Adapter   Display
-       *   ----------------------------------
-       *   EXP1-10 ---------- EXP1-10  5V
-       *   EXP1-9 ----------- EXP1-9   GND
-       *   SPI1-4 ----------- EXP1-6   MOSI
-       *   EXP1-7 ----------- n/c
-       *   SPI1-3 ----------- EXP1-2   SCK
-       *   EXP1-5 ----------- EXP1-4   SD_CS
-       *   EXP1-4 ----------- n/c
-       *   EXP1-3 ----------- EXP1-3   LCD_CS
-       *   SPI1-1 ----------- EXP1-1   MISO
-       *   EXP1-1 ----------- EXP1-7   SD_DET
+       *           _________
+       *   EXP1-1 ----------- EXP1-10
+       *   EXP1-2 ----------- EXP1-9
+       *   SPI1-4 ----------- EXP1-6
+       *   EXP1-4 ----------- FREE
+       *   SPI1-3 ----------- EXP1-2
+       *   EXP1-6 ----------- EXP1-4
+       *   EXP1-7 ----------- FREE
+       *   EXP1-8 ----------- EXP1-3
+       *   SPI1-1 ----------- EXP1-1
+       *  EXP1-10 ----------- EXP1-7
        */
 
       #define TFTGLCD_CS                    PE7
@@ -315,54 +282,54 @@
     #endif
 
   #else
-    #error "Only CR10_STOCKDISPLAY, ZONESTAR_LCD, ENDER2_STOCKDISPLAY, MKS_MINI_12864, LCD_FOR_MELZI, and TFTGLCD_PANEL_(SPI|I2C) are currently supported on the BTT_E3_RRF."
+    #error "Only CR10_STOCKDISPLAY, ZONESTAR_LCD, ENDER2_STOCKDISPLAY, MKS_MINI_12864, and TFTGLCD_PANEL_(SPI|I2C) are currently supported on the BTT_E3_RRF."
   #endif
 
   // Alter timing for graphical display
-  #if ENABLED(LCD_FOR_MELZI)                      // LCD_FOR_MELZI default timing is too fast. This works but may be reduced.
-    #define BOARD_ST7920_DELAY_1             200
-    #define BOARD_ST7920_DELAY_2             400
-    #define BOARD_ST7920_DELAY_3            1200
-  #elif IS_U8GLIB_ST7920
-    #define BOARD_ST7920_DELAY_1              96
-    #define BOARD_ST7920_DELAY_2              48
-    #define BOARD_ST7920_DELAY_3             600
+  #if HAS_MARLINUI_U8GLIB
+    #ifndef BOARD_ST7920_DELAY_1
+      #define BOARD_ST7920_DELAY_1 DELAY_NS(96)
+    #endif
+    #ifndef BOARD_ST7920_DELAY_2
+      #define BOARD_ST7920_DELAY_2 DELAY_NS(48)
+    #endif
+    #ifndef BOARD_ST7920_DELAY_3
+      #define BOARD_ST7920_DELAY_3 DELAY_NS(600)
+    #endif
   #endif
 
 #endif // HAS_WIRED_LCD
 
 #if BOTH(TOUCH_UI_FTDI_EVE, LCD_FYSETC_TFT81050)
 
-  #ifndef NO_CONTROLLER_CUSTOM_WIRING_WARNING
-    #error "CAUTION! LCD_FYSETC_TFT81050 requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. (Define NO_CONTROLLER_CUSTOM_WIRING_WARNING to suppress this warning.)"
-  #endif
+  #error "CAUTION! LCD_FYSETC_TFT81050 requires wiring modifications. See 'pins_BTT_E3_RRF.h' for details. Comment out this line to continue."
 
   /** FYSETC TFT TFT81050 display pinout
    *
-   *                  Board                          Display
-   *                  ------                          ------
-   * (SD_DET)    PE8 | 1  2 | PE9 (BEEPER)        5V |10  9 | GND
-   * (MOD_RESET) PE7 | 3  4 | RESET            RESET | 8  7 | (SD_DET)
-   * (SD_CS)     PB2   5  6 | PE10           (MOSI)  | 6  5 | (LCD_CS)
-   * (LCD_CS)    PB1 | 7  8 | PE11           (SD_CS) | 4  3 | (MOD_RESET)
-   *             GND | 9 10 | 5V             (SCK)   | 2  1 | (MISO)
-   *                  ------                          ------
-   *                   EXP1                            EXP1
+   *               Board                                      Display
+   *               _____                                       _____
+   *           5V | 1 2 | GND                (SPI1-MISO) MISO | 1 2 | SCK   (SPI1-SCK)
+   * (FREE)  PE11 | 3 4 | PB1  (LCD_CS)      (PE7)  MOD_RESET | 3 4 | SD_CS (PB2)
+   * (FREE)  PE10 | 5 6 | PB2  (SD_CS)       (PB1)     LCD_CS | 5 6 | MOSI  (SPI1-MOSI)
+   *        RESET | 7 8 | PE7  (MOD_RESET)   (PE8)     SD_DET | 7 8 | RESET
+   * (BEEPER) PE9 | 9 10| PE8  (SD_DET)                   GND | 9 10| 5V
+   *               -----                                       -----
+   *                EXP1                                        EXP1
    *
    * Needs custom cable:
    *
    *    Board   Adapter   Display
-   *   ----------------------------------
-   *   EXP1-10 ---------- EXP1-10  5V
-   *   EXP1-9 ----------- EXP1-9   GND
-   *   SPI1-4 ----------- EXP1-6   MOSI
-   *   EXP1-7 ----------- EXP1-5   LCD_CS
-   *   SPI1-3 ----------- EXP1-2   SCK
-   *   EXP1-5 ----------- EXP1-4   SD_CS
-   *   EXP1-4 ----------- EXP1-8   RESET
-   *   EXP1-3 ----------- EXP1-3   MOD_RST
-   *   SPI1-1 ----------- EXP1-1   MISO
-   *   EXP1-1 ----------- EXP1-7   SD_DET
+   *           _________
+   *   EXP1-1 ----------- EXP1-10
+   *   EXP1-2 ----------- EXP1-9
+   *   SPI1-4 ----------- EXP1-6
+   *   EXP1-4 ----------- EXP1-5
+   *   SPI1-3 ----------- EXP1-2
+   *   EXP1-6 ----------- EXP1-4
+   *   EXP1-7 ----------- EXP1-8
+   *   EXP1-8 ----------- EXP1-3
+   *   SPI1-1 ----------- EXP1-1
+   *  EXP1-10 ----------- EXP1-7
    */
 
   #define CLCD_SPI_BUS                         1  // SPI1 connector
@@ -384,6 +351,13 @@
 
 #if SD_CONNECTION_IS(ONBOARD)
   #define SDIO_SUPPORT                            // Use SDIO for onboard SD
+  #define SDIO_D0_PIN                       PC8
+  #define SDIO_D1_PIN                       PC9
+  #define SDIO_D2_PIN                       PC10
+  #define SDIO_D3_PIN                       PC11
+  #define SDIO_CK_PIN                       PC12
+  #define SDIO_CMD_PIN                      PD2
+
   //#define SDIO_CLOCK                  48000000
   #define SD_DETECT_PIN                     PC4
 #elif SD_CONNECTION_IS(CUSTOM_CABLE)
@@ -399,22 +373,3 @@
 #define ESP_WIFI_MODULE_RESET_PIN           PA4
 #define ESP_WIFI_MODULE_ENABLE_PIN          PA5
 #define ESP_WIFI_MODULE_GPIO0_PIN           PA6
-
-#if ENABLED(BTT_E3_RRF_IDEX_BOARD)
-  #define FPC2_PIN                          PB11
-  #define FPC3_PIN                          PB10
-  #define FPC4_PIN                          PE12
-  #define FPC5_PIN                          PE13
-  #define FPC6_PIN                          PE14
-  #define FPC7_PIN                          PE15
-  #define FPC8_PIN                          PA3
-  #define FPC9_PIN                          PA2
-  #define FPC10_PIN                         PA8
-  #define FPC11_PIN                         PC15
-  #define FPC12_PIN                         PC14
-  #define FPC13_PIN                         PC13
-  #define FPC14_PIN                         PE6
-  #define FPC15_PIN                         PE5
-  #define FPC16_PIN                         PE4
-  #define FPC17_PIN                         PE3
-#endif
