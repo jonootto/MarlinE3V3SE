@@ -43,7 +43,7 @@
 #define NUM_HARDWARE_TIMERS 2
 
 #ifndef STEP_TIMER_NUM
-  #define STEP_TIMER_NUM        0  // Timer Index for Stepper
+   #define STEP_TIMER_NUM        0  // Timer Index for Stepper
 #endif
 #ifndef PULSE_TIMER_NUM
   #define PULSE_TIMER_NUM       STEP_TIMER_NUM
