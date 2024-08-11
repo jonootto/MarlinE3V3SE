@@ -172,7 +172,8 @@ void GCodeParser::parse(char *p) {
    * Screen for good command letters. G, M, and T are always accepted.
    * With Motion Modes enabled any axis letter can come first.
    */
-  switch (letter) {
+  switch (letter)
+  {
     case 'G': case 'M': case 'T': TERN_(MARLIN_DEV_MODE, case 'D':) {
       // Skip spaces to get the numeric part
       while (*p == ' ') p++;
